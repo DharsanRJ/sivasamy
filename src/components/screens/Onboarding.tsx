@@ -1,11 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Zap, GraduationCap, Briefcase, Users, Target, FlaskConical, Database, ChevronRight, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Zap, GraduationCap, Briefcase, Users, Target, FlaskConical, Database, ChevronRight, CheckCircle2, ArrowRight, Github } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Persona } from '../../types';
+import { supabase } from '../../lib/supabase';
 
 export const Onboarding = () => {
-  const { onboardingStep, setOnboardingStep, setPersona, setView } = useAppStore();
+  const { onboardingStep, setOnboardingStep, setPersona, setView, setUser, user } = useAppStore();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          currentStreak: 0
+        });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          currentStreak: 0
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [setUser]);
+
+  const handleLogin = async () => {
+    setIsAuthenticating(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error logging in:', error);
+      setIsAuthenticating(false);
+    }
+  };
 
   const handleStartOnboarding = (p: Persona) => {
     setPersona(p);
@@ -27,7 +72,28 @@ export const Onboarding = () => {
           <Zap size={120} />
         </div>
 
-        {onboardingStep === 1 ? (
+        {!user ? (
+          <div className="space-y-10 text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-accent rounded-xl mb-6 shadow-lg shadow-brand-accent/20 rotate-3">
+              <Zap className="text-brand-bg" size={32} />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black text-brand-text uppercase italic tracking-tighter">SkillStack Identity</h1>
+              <p className="text-brand-muted mt-2 text-sm uppercase tracking-widest font-bold">Secure Access Required</p>
+            </div>
+            <button 
+              onClick={handleLogin}
+              disabled={isAuthenticating}
+              className="btn-primary w-full max-w-xs py-4 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-3 mx-auto"
+            >
+              <Github size={20} />
+              {isAuthenticating ? 'CONNECTING...' : 'CONTINUE WITH GITHUB'}
+            </button>
+            <p className="text-[10px] text-brand-muted uppercase font-bold tracking-widest">
+              By connecting, you agree to the matrix protocols.
+            </p>
+          </div>
+        ) : onboardingStep === 1 ? (
           <div className="space-y-10">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-accent rounded-xl mb-6 shadow-lg shadow-brand-accent/20 rotate-3">

@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Calendar, Clock, ArrowRight, AlertTriangle, BarChart3, ShieldAlert, FlaskConical, Zap } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { SectionHeader, cn } from '../ui';
 
 export const Dashboard = () => {
-  const { setView } = useAppStore();
+  const { setView, loadDashboard, user } = useAppStore();
+
+  useEffect(() => {
+    if (user) {
+      loadDashboard();
+    }
+  }, [user, loadDashboard]);
 
   return (
     <motion.div 
