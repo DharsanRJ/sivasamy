@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-bg: #0F172A;
+  --color-brand-surface: #1E293B;
+  --color-brand-border: #334155;
+  --color-brand-accent: #38BDF8;
+  --color-brand-text: #F1F5F9;
+  --color-brand-muted: #94A3B8;
+  --color-brand-success: #10B981;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg text-brand-text font-sans antialiased;
+  }
+}
+
+.glass {
+  @apply bg-brand-surface border border-brand-border rounded-lg shadow-sm;
+}
+
+.kanban-column {
+  @apply bg-brand-bg/50 rounded-lg p-3 border border-brand-border flex flex-col gap-3 min-h-[500px];
+}
+
+.skill-pill {
+  @apply bg-brand-surface border-l-3 border-brand-accent p-3 rounded-r-md text-sm shadow-md;
+}
+
+.streak-badge {
+  @apply bg-brand-success/10 border border-brand-success text-brand-success px-3 py-1 rounded-full text-xs font-semibold;
+}
+
+.btn-primary {
+  @apply bg-brand-accent text-brand-bg font-bold py-2.5 px-6 rounded-md cursor-pointer uppercase tracking-wider text-sm transition-all hover:brightness-110 active:scale-95;
+}
+
+.card-header-label {
+  @apply text-[11px] uppercase tracking-[0.1em] text-brand-muted font-semibold mb-3 flex items-center justify-between;
+}
