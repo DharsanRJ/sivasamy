@@ -2,8 +2,11 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
 import { SectionHeader } from '../ui';
+import { useAppStore } from '../../store/useAppStore';
 
 export const Lab = () => {
+  const { practiceTasks, isGeneratingTasks, generateAITasks } = useAppStore();
+  
   return (
     <motion.div 
       key="lab"
@@ -14,31 +17,56 @@ export const Lab = () => {
       <div className="flex flex-col h-full gap-6">
         <SectionHeader title="AI Execution Zone" description="Proving capability through cross-pollinated builds." />
         
-        <div className="flex-1 bg-brand-bg rounded-lg p-8 overflow-auto text-brand-muted font-mono text-sm leading-relaxed border border-brand-border shadow-2xl relative">
+        <div className="flex-1 bg-brand-bg rounded-lg p-8 overflow-auto text-brand-muted font-mono text-sm leading-relaxed border border-brand-border shadow-2xl relative flex flex-col">
           <div className="absolute top-0 right-0 p-4">
             <span className="flex items-center gap-2 px-3 py-1 bg-brand-success/10 text-brand-success rounded-full text-[10px] font-bold border border-brand-success/20">
-              <div className="w-1.5 h-1.5 bg-brand-success rounded-full animate-pulse" /> ENGINE: GPT-4-MINI
+              <div className="w-1.5 h-1.5 bg-brand-success rounded-full animate-pulse" /> ENGINE: GEMINI-1.5-FLASH
             </span>
           </div>
           
-          <div className="space-y-6">
-            <div className="p-4 bg-brand-surface rounded border border-brand-border">
-              <p className="text-brand-accent font-bold mb-2 uppercase text-[10px] tracking-widest">Target Integration</p>
-              <p className="text-brand-text text-lg font-bold font-sans tracking-tight">Automated Performance Pipeline</p>
-            </div>
+          <div className="flex-1 space-y-6">
+            {practiceTasks.length > 0 ? (
+              practiceTasks.map((task, i) => (
+                <div key={task.id} className="mb-8 border-b border-brand-border pb-8 last:border-0">
+                  <div className="p-4 bg-brand-surface rounded border border-brand-border mb-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-brand-accent font-bold mb-1 uppercase text-[10px] tracking-widest">Target Integration</p>
+                        <p className="text-brand-text text-lg font-bold font-sans tracking-tight">{task.title}</p>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-brand-bg border border-brand-border">
+                        {task.difficulty} • {task.duration}
+                      </span>
+                    </div>
+                  </div>
 
-            <p className="text-brand-accent opacity-60 italic">// GENERATED_SCENARIO_v12.4</p>
-            <p>
-              Combine your recent <span className="text-brand-text underline underline-offset-4 decoration-brand-accent">Python Automation</span> research with <span className="text-brand-text underline underline-offset-4 decoration-brand-accent">PostgreSQL Optimization</span>.
-            </p>
-
-            <div className="space-y-4 pl-4 border-l-2 border-brand-border">
-              <p className="text-brand-muted">1. Extract 10,000 mock user credentials from <span className="text-brand-text font-bold">users_v2.csv</span> using a custom Python script.</p>
-              <p className="text-brand-muted">2. Implement an upsert logic that prevents duplicate entries based on email hashing.</p>
-              <p className="text-brand-muted">3. Write a SQL query to identify "orphaned" sessions that haven't refreshed their TTL token in 5 minutes.</p>
-            </div>
-
-            <p className="text-orange-400/80 text-[11px] uppercase font-bold tracking-widest">! CONSTRAINT: Do not use ORMs. Use raw psycopg2 for database interactions.</p>
+                  <p className="text-brand-accent opacity-60 italic mb-2">// GENERATED_SCENARIO_v{i + 1}</p>
+                  <p className="mb-4">{task.description}</p>
+                  
+                  {task.criteria && task.criteria.length > 0 && (
+                    <div className="space-y-3 pl-4 border-l-2 border-brand-border">
+                      {task.criteria.map((c, j) => (
+                         <p key={j} className="text-brand-muted"><span className="text-brand-text font-bold">{j+1}.</span> {c}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-center text-brand-muted">No active lab tasks. Generate a new simulation.</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-brand-border">
+            <button 
+              onClick={generateAITasks}
+              disabled={isGeneratingTasks}
+              className="w-full py-3 bg-brand-surface border border-brand-border hover:border-brand-accent text-brand-text font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+            >
+              {isGeneratingTasks ? 'GENERATING...' : 'GENERATE NEW LAB TASKS'}
+            </button>
           </div>
         </div>
       </div>

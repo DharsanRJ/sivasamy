@@ -4,3 +4,4 @@ pydantic>=2.9.0
 pydantic-settings
 supabase
 python-dotenv
+google-generativeai

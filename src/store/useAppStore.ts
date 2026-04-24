@@ -22,6 +22,8 @@ interface AppState {
   
   practiceTasks: PracticeTask[];
   setPracticeTasks: (tasks: PracticeTask[]) => void;
+  generateAITasks: () => Promise<void>;
+  isGeneratingTasks: boolean;
 
   loadDashboard: () => Promise<void>;
 }
@@ -59,6 +61,42 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   practiceTasks: MOCK_PRACTICE_TASKS,
   setPracticeTasks: (tasks) => set({ practiceTasks: tasks }),
+  isGeneratingTasks: false,
+  
+  generateAITasks: async () => {
+    const user = get().user;
+    if (!user) return;
+    
+    set({ isGeneratingTasks: true });
+    try {
+      // Import api dynamically or use the top level import if we had it
+      // Let's assume we imported generateTasksAPI at the top already. Wait, let me check top imports.
+      // I'll just use a local require or fetch if needed, but I'll add the import via another call.
+      const { generateTasksAPI } = await import('../lib/api');
+      const response = await generateTasksAPI(user.id);
+      
+      if (response?.data?.tasks) {
+        // Map AI response to frontend model
+        const newTasks: PracticeTask[] = response.data.tasks.map((t: any, index: number) => ({
+          id: `ai-task-${Date.now()}-${index}`,
+          title: t.title,
+          description: t.description,
+          relatedSkillId: get().skills[0]?.id || 'unknown', // Best effort match or pass along
+          difficulty: t.difficulty,
+          status: 'Pending',
+          type: 'Project',
+          duration: `${t.duration_minutes}m`,
+          criteria: t.criteria || []
+        }));
+        
+        set({ practiceTasks: newTasks });
+      }
+    } catch (e) {
+      console.error("Failed to generate AI tasks", e);
+    } finally {
+      set({ isGeneratingTasks: false });
+    }
+  },
 
   loadDashboard: async () => {
     const user = get().user;

@@ -24,7 +24,9 @@ export interface PracticeTask {
   title: string;
   description: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  estimatedTime: string;
+  duration: string;
   status: 'Pending' | 'Completed';
-  tags: string[];
+  criteria: string[];
+  type?: string;
+  relatedSkillId?: string;
 }

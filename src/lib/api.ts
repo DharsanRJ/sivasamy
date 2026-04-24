@@ -39,3 +39,17 @@ export const updateSkillAPI = async (skillId: string, proficiency: number, statu
   
   return response.json();
 };
+
+export const generateTasksAPI = async (userId: string) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/generate-tasks`, {
+    method: 'POST',
+    headers,
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate tasks');
+  }
+  
+  return response.json();
+};
