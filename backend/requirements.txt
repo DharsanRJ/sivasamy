@@ -5,3 +5,7 @@ pydantic-settings
 supabase
 python-dotenv
 google-generativeai
+celery
+redis
+PyPDF2
+python-multipart

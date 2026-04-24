@@ -1,11 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Loader2, Target } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { useAppStore } from '../../store/useAppStore';
+import { generateMockInterviewAPI } from '../../lib/api';
 import { SectionHeader } from '../ui';
 import { RADAR_DATA } from '../../data/mock';
 
 export const Readiness = () => {
+  const { user } = useAppStore();
+  const [jdText, setJdText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [interviewData, setInterviewData] = useState<any>(null);
+
+  const handleGenerateInterview = async () => {
+    if (!user || !jdText) return;
+    setIsGenerating(true);
+    try {
+      const response = await generateMockInterviewAPI(user.id, jdText);
+      if (response.data) {
+        setInterviewData(response.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <motion.div 
       key="readiness"
@@ -67,48 +89,53 @@ export const Readiness = () => {
 
         <div className="space-y-6">
            <div className="glass p-6">
-            <div className="card-header-label">
-              <span>CRITICAL GAPS</span>
+            <div className="card-header-label mb-4">
+              <span>MOCK INTERVIEW SIMULATOR</span>
             </div>
-            <div className="space-y-4">
-              {[
-                { skill: 'Distributed Systems', gap: '7/10', priority: 'High' },
-                { skill: 'System Design', gap: '9/10', priority: 'High' },
-                { skill: 'Cloud Native', gap: '5/10', priority: 'Medium' }
-              ].map((item, i) => (
-                <div key={i} className="p-4 bg-brand-bg/50 rounded border border-brand-border group hover:border-brand-accent transition-all">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[13px] font-bold text-brand-text">{item.skill}</span>
-                    <span className="text-[11px] font-mono text-brand-accent">{item.gap}</span>
-                  </div>
-                  <div className="flex gap-1 h-1 rounded-full overflow-hidden bg-brand-border">
-                     <div className="h-full bg-brand-accent" style={{ width: item.skill === 'System Design' ? '90%' : item.skill === 'Cloud Native' ? '50%' : '70%' }} />
-                  </div>
+            
+            {!interviewData ? (
+              <div className="space-y-4">
+                <textarea 
+                  value={jdText}
+                  onChange={(e) => setJdText(e.target.value)}
+                  placeholder="Paste Target Job Description (JD) here..."
+                  className="w-full h-40 bg-brand-bg/50 border border-brand-border rounded p-4 text-sm text-brand-text focus:outline-none focus:border-brand-accent transition-colors resize-none placeholder:text-brand-muted/50"
+                />
+                <button 
+                  onClick={handleGenerateInterview}
+                  disabled={isGenerating || !jdText}
+                  className="w-full py-3 bg-brand-surface border border-brand-border hover:border-brand-accent text-brand-text font-bold text-xs uppercase tracking-widest rounded flex justify-center items-center gap-2 transition-all disabled:opacity-50"
+                >
+                  {isGenerating ? <Loader2 className="animate-spin" size={16} /> : <Target size={16} />}
+                  {isGenerating ? 'ANALYZING GAPS & GENERATING...' : 'GENERATE INTERVIEW PLAN'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h4 className="text-sm font-bold text-brand-accent uppercase tracking-wider">{interviewData.title}</h4>
+                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                  {interviewData.questions.map((q: any, i: number) => (
+                    <div key={i} className="p-4 bg-brand-bg/50 rounded border border-brand-border">
+                      <div className="flex justify-between items-start mb-2">
+                         <span className="text-[13px] font-bold text-brand-text leading-relaxed">Q{i + 1}. {q.question}</span>
+                      </div>
+                      <div className="space-y-1 mt-4 pl-3 border-l-2 border-brand-accent/30">
+                        <p className="text-[9px] font-bold text-brand-muted uppercase tracking-widest mb-2">Expected Key Points:</p>
+                        {q.expected_key_points.map((point: string, j: number) => (
+                          <p key={j} className="text-[11px] text-brand-muted leading-relaxed">• {point}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-brand-accent to-blue-600 rounded-lg p-6 text-brand-bg shadow-xl flex flex-col justify-between h-[240px]">
-            <div>
-              <h4 className="text-xl font-bold uppercase tracking-tight leading-none mb-2">Portfolio Locked</h4>
-              <p className="text-brand-bg/80 text-[11px] font-bold uppercase tracking-widest leading-relaxed">
-                Metrics mapped to public validation link.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-brand-bg/20 p-4 rounded border border-brand-bg/10 backdrop-blur-sm">
-                <p className="text-[9px] uppercase font-bold opacity-70 mb-1">Artifacts</p>
-                <p className="text-2xl font-black font-mono tracking-tighter text-brand-bg italic">12</p>
+                <button 
+                  onClick={() => setInterviewData(null)}
+                  className="w-full py-3 border border-brand-border text-brand-muted hover:text-brand-text hover:border-brand-text transition-colors rounded text-[10px] uppercase font-bold tracking-widest mt-4"
+                >
+                  New Simulation
+                </button>
               </div>
-              <div className="bg-brand-bg/20 p-4 rounded border border-brand-bg/10 backdrop-blur-sm">
-                <p className="text-[9px] uppercase font-bold opacity-70 mb-1">Validation</p>
-                <p className="text-2xl font-black font-mono tracking-tighter text-brand-bg italic">88%</p>
-              </div>
-            </div>
-            <button className="w-full py-2.5 bg-brand-bg text-brand-accent rounded font-bold text-xs uppercase tracking-widest mt-4 hover:brightness-125 transition-all">
-              Copy Link
-            </button>
+            )}
           </div>
         </div>
       </div>

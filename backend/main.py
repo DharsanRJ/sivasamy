@@ -1,14 +1,15 @@
 import os
 from typing import Optional, Dict, Any
 
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import uvicorn
-
-# ---------------------------------------------------------
+import shutil
+import uuid
+from backend.tasks import process_resume_task
 # 1. FIX: Graceful handling of missing env variables
 # ---------------------------------------------------------
 load_dotenv()
@@ -135,7 +136,11 @@ def update_skill(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from backend.ai_engine import generate_practice_tasks
+from backend.ai_engine import generate_practice_tasks, generate_calibration_question, generate_mock_interview
+
+class MockInterviewRequest(BaseModel):
+    jd_text: str = Field(..., description="The Job Description text to base the interview on")
+
 
 @app.post("/api/users/{user_id}/generate-tasks")
 def generate_user_tasks(
@@ -163,6 +168,92 @@ def generate_user_tasks(
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/skills/{skill_id}/calibrate")
+def calibrate_skill(
+    skill_id: str,
+    db: Client = Depends(get_supabase_client)
+) -> Dict[str, Any]:
+    """
+    Generates a calibration question for a specific skill.
+    """
+    try:
+        # 1. Fetch the specific skill to get its name
+        res = db.table("skills").select("*").eq("id", skill_id).execute()
+        data = getattr(res, "data", [])
+        if not data:
+            raise ValueError("Skill not found or access denied.")
+            
+        skill_name = data[0].get("name")
+        
+        # 2. Generate calibration question
+        question_data = generate_calibration_question(skill_name)
+        
+        return {"status": "success", "data": question_data}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/users/{user_id}/interview/mock")
+def create_mock_interview(
+    user_id: str,
+    request: MockInterviewRequest,
+    db: Client = Depends(get_supabase_client)
+) -> Dict[str, Any]:
+    """
+    Generates a mock interview based on a JD and the user's current skills.
+    """
+    try:
+        # 1. Fetch user's skills
+        skills_res = db.table("skills").select("*").eq("user_id", user_id).execute()
+        skills = getattr(skills_res, "data", [])
+        
+        if not skills:
+            # Fallback to empty list if no skills, AI will just use JD
+            skills = []
+            
+        # 2. Generate interview
+        interview_data = generate_mock_interview(request.jd_text, skills)
+        
+        return {"status": "success", "data": interview_data}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/users/{user_id}/resume/upload")
+def upload_resume(
+    user_id: str,
+    file: UploadFile = File(...),
+    token: str = Depends(verify_token)
+) -> Dict[str, Any]:
+    """
+    Accepts a PDF resume, saves it temporarily, and triggers background processing.
+    """
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+        
+    try:
+        # Create temp dir if not exists
+        os.makedirs("tmp_resumes", exist_ok=True)
+        
+        # Save file locally
+        file_path = f"tmp_resumes/{uuid.uuid4()}_{file.filename}"
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Dispatch Celery background task
+        # We pass the user's JWT token so the background task can authenticate with Supabase RLS
+        process_resume_task.delay(user_id, file_path, token)
+        
+        return {
+            "status": "success", 
+            "message": "Resume uploaded successfully. Processing in background."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

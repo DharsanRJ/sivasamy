@@ -53,3 +53,53 @@ export const generateTasksAPI = async (userId: string) => {
   
   return response.json();
 };
+
+export const uploadResumeAPI = async (userId: string, file: File) => {
+  const headers = await getAuthHeaders();
+  // @ts-ignore
+  delete headers['Content-Type']; // Let browser set multipart boundary
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/resume/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to upload resume');
+  }
+  
+  return response.json();
+};
+
+export const calibrateSkillAPI = async (skillId: string) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/skills/${skillId}/calibrate`, {
+    method: 'POST',
+    headers,
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate calibration question');
+  }
+  
+  return response.json();
+};
+
+export const generateMockInterviewAPI = async (userId: string, jdText: string) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/interview/mock`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ jd_text: jdText }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate mock interview');
+  }
+  
+  return response.json();
+};

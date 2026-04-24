@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Zap, GraduationCap, Briefcase, Users, Target, FlaskConical, Database, ChevronRight, CheckCircle2, ArrowRight, Github } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Persona } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { uploadResumeAPI } from '../../lib/api';
 
 export const Onboarding = () => {
   const { onboardingStep, setOnboardingStep, setPersona, setView, setUser, user } = useAppStore();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Check active session
@@ -55,6 +58,29 @@ export const Onboarding = () => {
   const handleStartOnboarding = (p: Persona) => {
     setPersona(p);
     setOnboardingStep(2);
+  };
+
+  const handleOptionClick = (optId: string) => {
+    if (optId === 'resume') {
+      fileInputRef.current?.click();
+    } else {
+      setOnboardingStep(3);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && user) {
+      setIsUploading(true);
+      try {
+        await uploadResumeAPI(user.id, file);
+        setOnboardingStep(3);
+      } catch (err) {
+        console.error("Failed to upload resume", err);
+      } finally {
+        setIsUploading(false);
+      }
+    }
   };
 
   const handleFinishOnboarding = () => {
@@ -145,15 +171,23 @@ export const Onboarding = () => {
               </div>
               
               <div className="grid gap-3">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  accept=".pdf" 
+                  onChange={handleFileChange} 
+                />
                 {[
                   { id: 'assess', icon: FlaskConical, title: 'TECHNICAL ASSESSMENT', subtitle: '40 core calibration prompts' },
-                  { id: 'resume', icon: Database, title: 'RESUME INGESTION', subtitle: 'AI-powered mapping & gap detection' },
+                  { id: 'resume', icon: Database, title: 'RESUME INGESTION', subtitle: isUploading ? 'UPLOADING...' : 'AI-powered mapping & gap detection' },
                   { id: 'skip', icon: ChevronRight, title: 'AUTOPILOT START', subtitle: 'Pre-populate with role defaults' }
                 ].map((opt) => (
                   <button 
                     key={opt.id}
-                    onClick={() => setOnboardingStep(3)}
-                    className="flex items-center gap-5 p-5 rounded bg-brand-surface border border-brand-border hover:border-brand-accent text-left transition-all group"
+                    onClick={() => handleOptionClick(opt.id)}
+                    disabled={isUploading}
+                    className="flex items-center gap-5 p-5 rounded bg-brand-surface border border-brand-border hover:border-brand-accent text-left transition-all group disabled:opacity-50"
                   >
                     <div className="w-10 h-10 rounded bg-brand-bg flex items-center justify-center border border-brand-border group-hover:border-brand-accent/50">
                       <opt.icon size={18} className="text-brand-muted group-hover:text-brand-accent" />
