@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Zap, GraduationCap, Briefcase, Users, Target, FlaskConical, Database, ChevronRight, CheckCircle2, ArrowRight, Github } from 'lucide-react';
+import { Zap, GraduationCap, Briefcase, Users, Target, FlaskConical, Database, ChevronRight, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Persona } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -10,47 +10,41 @@ export const Onboarding = () => {
   const { onboardingStep, setOnboardingStep, setPersona, setView, setUser, user } = useAppStore();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          currentStreak: 0
-        });
-      }
-    });
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          currentStreak: 0
-        });
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [setUser]);
-
-  const handleLogin = async () => {
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsAuthenticating(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: window.location.origin
+      if (isLoginMode) {
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (data.session) {
+          setUser({ id: data.session.user.id, email: data.session.user.email || '', currentStreak: 0 });
         }
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error logging in:', error);
+      } else {
+        const { error, data } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: { data: { username } }
+        });
+        if (error) throw error;
+        if (data.session) {
+          setUser({ id: data.session.user.id, email: data.session.user.email || '', currentStreak: 0 });
+        } else {
+          alert('Sign up successful! Check your email to verify if required.');
+        }
+      }
+    } catch (error: any) {
+      console.error('Error authenticating:', error);
+      alert(error.message);
+    } finally {
       setIsAuthenticating(false);
     }
   };
@@ -72,11 +66,14 @@ export const Onboarding = () => {
     const file = e.target.files?.[0];
     if (file && user) {
       setIsUploading(true);
+      setUploadSuccess(false);
       try {
         await uploadResumeAPI(user.id, file);
-        setOnboardingStep(3);
-      } catch (err) {
+        setUploadSuccess(true);
+        setTimeout(() => setOnboardingStep(3), 1500);
+      } catch (err: any) {
         console.error("Failed to upload resume", err);
+        alert("Upload Failed: " + err.message);
       } finally {
         setIsUploading(false);
       }
@@ -99,25 +96,67 @@ export const Onboarding = () => {
         </div>
 
         {!user ? (
-          <div className="space-y-10 text-center py-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-accent rounded-xl mb-6 shadow-lg shadow-brand-accent/20 rotate-3">
-              <Zap className="text-brand-bg" size={32} />
+          <div className="space-y-8 py-4">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-accent rounded-xl mb-6 shadow-lg shadow-brand-accent/20 rotate-3">
+                <Zap className="text-brand-bg" size={32} />
+              </div>
+              <h1 className="text-4xl font-black text-brand-text uppercase italic tracking-tighter">SkillStack</h1>
+              <p className="text-brand-muted mt-2 text-sm uppercase tracking-widest font-bold">
+                {isLoginMode ? 'Access Required' : 'Initialize Identity'}
+              </p>
             </div>
-            <div>
-              <h1 className="text-4xl font-black text-brand-text uppercase italic tracking-tighter">SkillStack Identity</h1>
-              <p className="text-brand-muted mt-2 text-sm uppercase tracking-widest font-bold">Secure Access Required</p>
+            
+            <form onSubmit={handleAuth} className="space-y-4 max-w-sm mx-auto">
+              {!isLoginMode && (
+                <div>
+                  <input 
+                    type="text" 
+                    placeholder="USERNAME" 
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full px-4 py-3 bg-brand-bg/50 border border-brand-border focus:border-brand-accent rounded text-sm text-brand-text uppercase tracking-wider"
+                    required
+                  />
+                </div>
+              )}
+              <div>
+                <input 
+                  type="email" 
+                  placeholder="EMAIL ADDRESS" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-brand-bg/50 border border-brand-border focus:border-brand-accent rounded text-sm text-brand-text uppercase tracking-wider"
+                  required
+                />
+              </div>
+              <div>
+                <input 
+                  type="password" 
+                  placeholder="PASSWORD" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-brand-bg/50 border border-brand-border focus:border-brand-accent rounded text-sm text-brand-text uppercase tracking-wider"
+                  required
+                />
+              </div>
+              <button 
+                type="submit"
+                disabled={isAuthenticating}
+                className="btn-primary w-full py-4 shadow-xl shadow-brand-accent/20 flex items-center justify-center mt-2"
+              >
+                {isAuthenticating ? 'AUTHENTICATING...' : isLoginMode ? 'LOGIN' : 'SIGN UP'}
+              </button>
+            </form>
+            
+            <div className="text-center">
+              <button 
+                onClick={() => setIsLoginMode(!isLoginMode)}
+                className="text-[10px] text-brand-muted hover:text-brand-accent uppercase font-bold tracking-widest transition-colors"
+              >
+                {isLoginMode ? 'Need an account? Sign Up' : 'Already have an account? Login'}
+              </button>
             </div>
-            <button 
-              onClick={handleLogin}
-              disabled={isAuthenticating}
-              className="btn-primary w-full max-w-xs py-4 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-3 mx-auto"
-            >
-              <Github size={20} />
-              {isAuthenticating ? 'CONNECTING...' : 'CONTINUE WITH GITHUB'}
-            </button>
-            <p className="text-[10px] text-brand-muted uppercase font-bold tracking-widest">
-              By connecting, you agree to the matrix protocols.
-            </p>
           </div>
         ) : onboardingStep === 1 ? (
           <div className="space-y-10">
@@ -180,7 +219,7 @@ export const Onboarding = () => {
                 />
                 {[
                   { id: 'assess', icon: FlaskConical, title: 'TECHNICAL ASSESSMENT', subtitle: '40 core calibration prompts' },
-                  { id: 'resume', icon: Database, title: 'RESUME INGESTION', subtitle: isUploading ? 'UPLOADING...' : 'AI-powered mapping & gap detection' },
+                  { id: 'resume', icon: Database, title: 'RESUME INGESTION', subtitle: uploadSuccess ? 'RESUME UPLOADED! AI REVIEWING...' : (isUploading ? 'UPLOADING...' : 'AI-powered mapping & gap detection') },
                   { id: 'skip', icon: ChevronRight, title: 'AUTOPILOT START', subtitle: 'Pre-populate with role defaults' }
                 ].map((opt) => (
                   <button 
@@ -194,7 +233,7 @@ export const Onboarding = () => {
                     </div>
                     <div>
                       <h4 className="font-bold text-brand-text text-xs uppercase tracking-wider">{opt.title}</h4>
-                      <p className="text-[10px] text-brand-muted uppercase mt-0.5">{opt.subtitle}</p>
+                      <p className={`text-[10px] uppercase mt-0.5 ${opt.id === 'resume' && uploadSuccess ? 'text-brand-success font-bold' : 'text-brand-muted'}`}>{opt.subtitle}</p>
                     </div>
                   </button>
                 ))}

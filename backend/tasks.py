@@ -17,6 +17,7 @@ class ExtractedSkill(BaseModel):
 
 class ResumeAnalysisFormat(BaseModel):
     skills: List[ExtractedSkill]
+    resume_review: str = Field(description="A 2-sentence positive, constructive review of the resume highlighting strengths and one key area for improvement.")
 
 @celery_app.task
 def process_resume_task(user_id: str, file_path: str, token: str):
@@ -39,6 +40,7 @@ def process_resume_task(user_id: str, file_path: str, token: str):
         prompt = f"""
         Extract the top 10 technical skills from the following resume text.
         Estimate proficiency (1-5) based on how prominently they are featured or years of experience mentioned.
+        Also, provide a brief 2-sentence 'resume_review' highlighting the candidate's core strengths and one constructive area for improvement.
         
         Resume:
         {text}
@@ -69,6 +71,15 @@ def process_resume_task(user_id: str, file_path: str, token: str):
                 "name": skill["name"],
                 "proficiency": skill["proficiency"],
                 "status": skill["status"]
+            }).execute()
+            
+        # 4. Save AI Review to Logs
+        if "resume_review" in extracted_data:
+            db.table("practice_logs").insert({
+                "user_id": user_id,
+                "task_title": "AI Resume Review",
+                "score": 100,
+                "feedback": extracted_data["resume_review"]
             }).execute()
             
         # Clean up temp file

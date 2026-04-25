@@ -12,7 +12,8 @@ import uuid
 from backend.tasks import process_resume_task
 # 1. FIX: Graceful handling of missing env variables
 # ---------------------------------------------------------
-load_dotenv()
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(dotenv_path=env_path)
 
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
@@ -231,7 +232,7 @@ def upload_resume(
     """
     Accepts a PDF resume, saves it temporarily, and triggers background processing.
     """
-    if not file.filename.endswith('.pdf'):
+    if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
         
     try:
@@ -252,6 +253,9 @@ def upload_resume(
             "message": "Resume uploaded successfully. Processing in background."
         }
     except Exception as e:
+        import traceback
+        print(f"UPLOAD FAILED ERROR: {str(e)}")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 

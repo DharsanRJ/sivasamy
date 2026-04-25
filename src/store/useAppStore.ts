@@ -6,6 +6,8 @@ import { fetchDashboardData, updateSkillAPI } from '../lib/api';
 interface AppState {
   user: User | null;
   setUser: (user: User | null) => void;
+  isInitialized: boolean;
+  setIsInitialized: (val: boolean) => void;
   view: AppView;
   setView: (view: AppView) => void;
   persona: Persona | null;
@@ -25,12 +27,14 @@ interface AppState {
   generateAITasks: () => Promise<void>;
   isGeneratingTasks: boolean;
 
-  loadDashboard: () => Promise<void>;
+  loadDashboard: () => Promise<boolean>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   setUser: (user) => set({ user }),
+  isInitialized: false,
+  setIsInitialized: (val) => set({ isInitialized: val }),
   view: 'onboarding',
   setView: (view) => set({ view }),
   persona: null,
@@ -100,14 +104,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadDashboard: async () => {
     const user = get().user;
-    if (!user) return;
+    if (!user) return false;
     try {
       const data = await fetchDashboardData(user.id);
       if (data.skills && data.skills.length > 0) {
         set({ skills: data.skills });
+        return true;
       }
+      return false;
     } catch (error) {
       console.error("Failed to load dashboard data from API, using mock.", error);
+      return false;
     }
   }
 }));

@@ -69,7 +69,8 @@ export const uploadResumeAPI = async (userId: string, file: File) => {
   });
   
   if (!response.ok) {
-    throw new Error('Failed to upload resume');
+    const errData = await response.json().catch(() => null);
+    throw new Error(errData?.detail || 'Failed to upload resume');
   }
   
   return response.json();

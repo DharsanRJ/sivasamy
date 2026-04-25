@@ -2,7 +2,8 @@ import os
 from celery import Celery
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(dotenv_path=env_path)
 
 # If using Redis Cloud, ensure REDIS_URL is in the .env file
 # e.g., redis://default:password@endpoint:port

@@ -29,7 +29,7 @@ export const Readiness = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       key="readiness"
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -77,31 +77,31 @@ export const Readiness = () => {
           </div>
           <div className="flex justify-center gap-8 mt-4">
             <div className="flex items-center gap-2">
-               <div className="w-3 h-3 bg-brand-accent rounded-full shadow-[0_0_8px_var(--color-brand-accent)]" />
-               <span className="text-[10px] font-bold text-brand-muted uppercase tracking-widest">Your Levels</span>
+              <div className="w-3 h-3 bg-brand-accent rounded-full shadow-[0_0_8px_var(--color-brand-accent)]" />
+              <span className="text-[10px] font-bold text-brand-muted uppercase tracking-widest">Your Levels</span>
             </div>
             <div className="flex items-center gap-2">
-               <div className="w-3 h-3 bg-brand-border rounded-full" />
-               <span className="text-[10px] font-bold text-brand-muted uppercase tracking-widest">Industry Baseline</span>
+              <div className="w-3 h-3 bg-brand-border rounded-full" />
+              <span className="text-[10px] font-bold text-brand-muted uppercase tracking-widest">Industry Baseline</span>
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
-           <div className="glass p-6">
+          <div className="glass p-6">
             <div className="card-header-label mb-4">
               <span>MOCK INTERVIEW SIMULATOR</span>
             </div>
-            
+
             {!interviewData ? (
               <div className="space-y-4">
-                <textarea 
+                <textarea
                   value={jdText}
                   onChange={(e) => setJdText(e.target.value)}
                   placeholder="Paste Target Job Description (JD) here..."
                   className="w-full h-40 bg-brand-bg/50 border border-brand-border rounded p-4 text-sm text-brand-text focus:outline-none focus:border-brand-accent transition-colors resize-none placeholder:text-brand-muted/50"
                 />
-                <button 
+                <button
                   onClick={handleGenerateInterview}
                   disabled={isGenerating || !jdText}
                   className="w-full py-3 bg-brand-surface border border-brand-border hover:border-brand-accent text-brand-text font-bold text-xs uppercase tracking-widest rounded flex justify-center items-center gap-2 transition-all disabled:opacity-50"
@@ -117,7 +117,7 @@ export const Readiness = () => {
                   {interviewData.questions.map((q: any, i: number) => (
                     <div key={i} className="p-4 bg-brand-bg/50 rounded border border-brand-border">
                       <div className="flex justify-between items-start mb-2">
-                         <span className="text-[13px] font-bold text-brand-text leading-relaxed">Q{i + 1}. {q.question}</span>
+                        <span className="text-[13px] font-bold text-brand-text leading-relaxed">Q{i + 1}. {q.question}</span>
                       </div>
                       <div className="space-y-1 mt-4 pl-3 border-l-2 border-brand-accent/30">
                         <p className="text-[9px] font-bold text-brand-muted uppercase tracking-widest mb-2">Expected Key Points:</p>
@@ -128,7 +128,7 @@ export const Readiness = () => {
                     </div>
                   ))}
                 </div>
-                <button 
+                <button
                   onClick={() => setInterviewData(null)}
                   className="w-full py-3 border border-brand-border text-brand-muted hover:text-brand-text hover:border-brand-text transition-colors rounded text-[10px] uppercase font-bold tracking-widest mt-4"
                 >
