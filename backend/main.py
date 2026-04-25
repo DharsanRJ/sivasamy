@@ -142,6 +142,17 @@ from backend.ai_engine import generate_practice_tasks, generate_calibration_ques
 class MockInterviewRequest(BaseModel):
     jd_text: str = Field(..., description="The Job Description text to base the interview on")
 
+class NewSkillRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    proficiency: int = Field(1, ge=1, le=5)
+    status: str = Field('Backlog')
+    category: str = Field('General')
+
+class LogSubmissionRequest(BaseModel):
+    task_title: str
+    feedback: str
+    score: int = Field(100, ge=0, le=100)
+
 
 @app.post("/api/users/{user_id}/generate-tasks")
 def generate_user_tasks(
@@ -193,6 +204,61 @@ def calibrate_skill(
         return {"status": "success", "data": question_data}
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/users/{user_id}/skills")
+def add_skill(
+    user_id: str,
+    skill_req: NewSkillRequest,
+    db: Client = Depends(get_supabase_client)
+) -> Dict[str, Any]:
+    """Add a new skill manually for a user."""
+    valid_statuses = ['Backlog', 'Learning', 'Practicing', 'Mastered']
+    if skill_req.status not in valid_statuses:
+        raise HTTPException(status_code=422, detail=f"Invalid status. Must be one of {valid_statuses}")
+    try:
+        res = db.table("skills").insert({
+            "user_id": user_id,
+            "name": skill_req.name,
+            "proficiency": skill_req.proficiency,
+            "status": skill_req.status,
+            "category": skill_req.category,
+        }).execute()
+        data = getattr(res, "data", [])
+        if not data:
+            raise ValueError("Insert failed")
+        return {"status": "success", "data": data[0]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users/{user_id}/logs")
+def get_practice_logs(
+    user_id: str,
+    db: Client = Depends(get_supabase_client)
+) -> Dict[str, Any]:
+    """Fetch recent practice logs for the activity feed."""
+    try:
+        res = db.table("practice_logs").select("*").eq("user_id", user_id).order("completed_at", desc=True).limit(10).execute()
+        return {"status": "success", "data": getattr(res, "data", [])}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/users/{user_id}/logs")
+def submit_lab_log(
+    user_id: str,
+    log_req: LogSubmissionRequest,
+    db: Client = Depends(get_supabase_client)
+) -> Dict[str, Any]:
+    """Save a lab submission as a practice log."""
+    try:
+        res = db.table("practice_logs").insert({
+            "user_id": user_id,
+            "task_title": log_req.task_title,
+            "feedback": log_req.feedback,
+            "score": log_req.score,
+        }).execute()
+        return {"status": "success", "data": getattr(res, "data", [])}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

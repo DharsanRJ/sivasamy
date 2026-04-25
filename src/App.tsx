@@ -24,10 +24,26 @@ import { Lab } from './components/screens/Lab';
 import { Readiness } from './components/screens/Readiness';
 
 export default function App() {
-  const { view, setView, streak, user, setUser, isInitialized, setIsInitialized, loadDashboard } = useAppStore();
+  const { view, setView, streak, user, setUser, skills, isInitialized, setIsInitialized, loadDashboard } = useAppStore();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Compute user level from mastered skills
+  const masteredCount = skills.filter(s => s.status === 'Mastered').length;
+  const getLevel = (n: number) => {
+    if (n >= 9) return { label: 'Level 4: Architect', pct: 95 };
+    if (n >= 6) return { label: 'Level 3: Engineer', pct: (n - 6) / 3 * 100 };
+    if (n >= 3) return { label: 'Level 2: Practitioner', pct: (n - 3) / 3 * 100 };
+    return { label: 'Level 1: Recruit', pct: n / 3 * 100 };
+  };
+  const { label: levelLabel, pct: levelPct } = getLevel(masteredCount);
+
+  const handleLogout = async () => {
+    const { supabase } = await import('./lib/supabase');
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -113,12 +129,13 @@ export default function App() {
         </nav>
 
         <div className="p-4 bg-brand-surface border border-brand-border rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1">
             <div className="streak-badge">🔥 {streak} DAY STREAK</div>
           </div>
-          <p className="text-[10px] text-brand-muted leading-relaxed uppercase tracking-widest font-bold mt-2 mb-2">Level 4: Architect</p>
+          <p className="text-[10px] text-brand-muted uppercase tracking-widest font-bold mt-1 truncate">{user?.email}</p>
+          <p className="text-[10px] text-brand-muted leading-relaxed uppercase tracking-widest font-bold mt-2 mb-2">{levelLabel}</p>
           <div className="h-1 w-full bg-brand-border rounded-full mt-2 overflow-hidden mb-4">
-            <div className="h-full bg-brand-accent w-3/4 rounded-full" />
+            <div className="h-full bg-brand-accent rounded-full transition-all duration-700" style={{ width: `${Math.max(levelPct, 5)}%` }} />
           </div>
           
           <input 
@@ -131,10 +148,16 @@ export default function App() {
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className={`w-full py-2 border text-[10px] uppercase font-bold tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50 rounded ${uploadSuccess ? 'bg-brand-success/10 border-brand-success text-brand-success' : 'bg-brand-bg border-brand-border hover:border-brand-accent text-brand-muted hover:text-brand-text'}`}
+            className={`w-full py-2 border text-[10px] uppercase font-bold tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50 rounded mb-2 ${uploadSuccess ? 'bg-brand-success/10 border-brand-success text-brand-success' : 'bg-brand-bg border-brand-border hover:border-brand-accent text-brand-muted hover:text-brand-text'}`}
           >
             {isUploading ? <Loader2 size={12} className="animate-spin" /> : (uploadSuccess ? <CheckCircle2 size={12} /> : <UploadCloud size={12} />)}
             {isUploading ? 'Parsing...' : (uploadSuccess ? 'Resume Uploaded!' : 'Upload Resume')}
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="w-full py-2 bg-brand-bg border border-brand-border hover:border-red-400/50 hover:text-red-400 text-brand-muted rounded text-[10px] uppercase font-bold tracking-widest transition-all"
+          >
+            Logout
           </button>
         </div>
       </aside>

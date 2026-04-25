@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { AppView, Persona, Skill, PracticeTask, User } from '../types';
-import { INITIAL_SKILLS, MOCK_PRACTICE_TASKS } from '../data/mock';
 import { fetchDashboardData, updateSkillAPI } from '../lib/api';
 
 interface AppState {
@@ -41,10 +40,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPersona: (persona) => set({ persona }),
   onboardingStep: 1,
   setOnboardingStep: (step) => set({ onboardingStep: step }),
-  streak: 12,
+  streak: 0,
   setStreak: (streak) => set({ streak }),
   
-  skills: INITIAL_SKILLS,
+  skills: [],
   setSkills: (skills) => set({ skills }),
   addSkill: (skill) => set((state) => ({ skills: [...state.skills, skill] })),
   updateSkill: async (id, updates) => {
@@ -63,7 +62,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   
-  practiceTasks: MOCK_PRACTICE_TASKS,
+  practiceTasks: [],
   setPracticeTasks: (tasks) => set({ practiceTasks: tasks }),
   isGeneratingTasks: false,
   

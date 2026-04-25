@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, MoreVertical, Loader2 } from 'lucide-react';
+import { Plus, MoreVertical, Loader2, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { calibrateSkillAPI } from '../../lib/api';
+import { calibrateSkillAPI, addSkillAPI } from '../../lib/api';
 import { SectionHeader, cn } from '../ui';
 import { SkillStatus } from '../../types';
 
 export const Tracker = () => {
-  const { skills, updateSkill } = useAppStore();
+  const { skills, updateSkill, addSkill, user } = useAppStore();
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibrationData, setCalibrationData] = useState<any>(null);
   const [pendingUpdate, setPendingUpdate] = useState<{skillId: string, prof: number, status: string} | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillCategory, setNewSkillCategory] = useState('General');
+  const [isAddingSkill, setIsAddingSkill] = useState(false);
 
   const handleProficiencyClick = async (skill: any, newProf: number) => {
     if (newProf >= 4 && newProf > skill.proficiency) {
@@ -43,6 +47,24 @@ export const Tracker = () => {
     setPendingUpdate(null);
   };
 
+  const handleAddSkill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newSkillName.trim()) return;
+    setIsAddingSkill(true);
+    try {
+      const res = await addSkillAPI(user.id, newSkillName.trim(), 1, 'Backlog', newSkillCategory);
+      if (res.data) {
+        addSkill({ id: res.data.id, name: res.data.name, proficiency: 1, status: 'Backlog', lastReviewed: 'Just now', category: res.data.category });
+      }
+      setNewSkillName('');
+      setShowAddModal(false);
+    } catch (err: any) {
+      alert('Failed to add skill: ' + err.message);
+    } finally {
+      setIsAddingSkill(false);
+    }
+  };
+
   return (
     <motion.div 
       key="tracker"
@@ -51,8 +73,8 @@ export const Tracker = () => {
       exit={{ opacity: 0, scale: 1.02 }}
     >
       <div className="flex justify-between items-center mb-8">
-        <SectionHeader title="The Matrix" description="Replace generic completion with actual capability mapping." />
-        <button className="btn-primary flex items-center gap-2">
+        <SectionHeader title="The Matrix" description="Your personal skill tracking board. All data from your profile." />
+        <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-2">
            <Plus size={16} /> ADD SKILL
         </button>
       </div>
@@ -133,6 +155,41 @@ export const Tracker = () => {
             >
               Abort Calibration
             </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Add Skill Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-brand-bg/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="glass p-8 max-w-md w-full space-y-6 border border-brand-border shadow-2xl">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-black text-brand-text uppercase italic tracking-tight">Add New Skill</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-brand-muted hover:text-brand-text"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAddSkill} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-brand-muted uppercase tracking-widest block mb-2">Skill Name</label>
+                <input type="text" value={newSkillName} onChange={e => setNewSkillName(e.target.value)}
+                  placeholder="e.g. React, Python, Docker..."
+                  className="w-full px-4 py-3 bg-brand-bg border border-brand-border focus:border-brand-accent rounded text-sm text-brand-text"
+                  required />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-brand-muted uppercase tracking-widest block mb-2">Category</label>
+                <select value={newSkillCategory} onChange={e => setNewSkillCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-brand-bg border border-brand-border focus:border-brand-accent rounded text-sm text-brand-text">
+                  {['Frontend', 'Backend', 'Database', 'DevOps', 'Language', 'Testing', 'Cloud', 'AI/ML', 'General'].map(c => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" disabled={isAddingSkill}
+                className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50">
+                {isAddingSkill ? <><Loader2 size={14} className="animate-spin" /> Adding...</> : 'Add to Matrix'}
+              </button>
+            </form>
           </motion.div>
         </div>
       )}

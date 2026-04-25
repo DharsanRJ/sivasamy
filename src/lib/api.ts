@@ -104,3 +104,35 @@ export const generateMockInterviewAPI = async (userId: string, jdText: string) =
   
   return response.json();
 };
+
+export const addSkillAPI = async (userId: string, name: string, proficiency: number, status: string, category: string) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/skills`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name, proficiency, status, category }),
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => null);
+    throw new Error(errData?.detail || 'Failed to add skill');
+  }
+  return response.json();
+};
+
+export const fetchLogsAPI = async (userId: string) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/logs`, { headers });
+  if (!response.ok) throw new Error('Failed to fetch logs');
+  return response.json();
+};
+
+export const submitLabLogAPI = async (userId: string, taskTitle: string, feedback: string) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/logs`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ task_title: taskTitle, feedback, score: 100 }),
+  });
+  if (!response.ok) throw new Error('Failed to submit log');
+  return response.json();
+};

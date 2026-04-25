@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
 import { SectionHeader } from '../ui';
 import { useAppStore } from '../../store/useAppStore';
+import { submitLabLogAPI } from '../../lib/api';
 
 export const Lab = () => {
-  const { practiceTasks, isGeneratingTasks, generateAITasks } = useAppStore();
+  const { practiceTasks, isGeneratingTasks, generateAITasks, user } = useAppStore();
+  const [githubUrl, setGithubUrl] = useState('');
+  const [demoUrl, setDemoUrl] = useState('');
+  const [reflection, setReflection] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const activeTask = practiceTasks[0];
   
   return (
     <motion.div 
@@ -85,11 +92,15 @@ export const Lab = () => {
                <label className="text-[10px] font-bold text-brand-muted uppercase tracking-[0.2em]">Artifact Repository</label>
                <input 
                 type="url" 
+                value={githubUrl}
+                onChange={e => setGithubUrl(e.target.value)}
                 placeholder="https://github.com/user/project" 
                 className="w-full px-4 py-3 bg-brand-bg rounded border border-brand-border focus:border-brand-accent outline-none text-brand-text text-sm transition-colors"
                />
                <input 
                 type="url" 
+                value={demoUrl}
+                onChange={e => setDemoUrl(e.target.value)}
                 placeholder="Loom / Demo / Gist Link" 
                 className="w-full px-4 py-3 bg-brand-bg rounded border border-brand-border focus:border-brand-accent outline-none text-brand-text text-sm transition-colors"
                />
@@ -98,6 +109,8 @@ export const Lab = () => {
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-brand-muted uppercase tracking-[0.2em]">Technical Reflection</label>
               <textarea 
+                value={reflection}
+                onChange={e => setReflection(e.target.value)}
                 placeholder="Detail the technical blocker encountered..."
                 className="w-full h-32 px-4 py-3 bg-brand-bg rounded border border-brand-border focus:border-brand-accent outline-none text-brand-text text-sm transition-colors resize-none"
               />
@@ -105,11 +118,35 @@ export const Lab = () => {
           </div>
 
           <div className="mt-8">
-            <button className="btn-primary w-full py-4 flex items-center justify-center gap-3">
-              COMPLETE INTEGRATION <ArrowRight size={18} />
-            </button>
+            {submitSuccess ? (
+              <div className="text-center py-4">
+                <CheckCircle2 className="text-brand-success mx-auto mb-2" size={32} />
+                <p className="text-brand-success font-bold text-sm uppercase tracking-widest">Submission Logged!</p>
+              </div>
+            ) : (
+              <button 
+                onClick={async () => {
+                  if (!user || !activeTask) return;
+                  setIsSubmitting(true);
+                  try {
+                    const feedback = `GitHub: ${githubUrl || 'N/A'} | Demo: ${demoUrl || 'N/A'} | Reflection: ${reflection || 'N/A'}`;
+                    await submitLabLogAPI(user.id, activeTask.title, feedback);
+                    setSubmitSuccess(true);
+                    setGithubUrl(''); setDemoUrl(''); setReflection('');
+                  } catch (err: any) {
+                    alert('Submit failed: ' + err.message);
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }}
+                disabled={isSubmitting || !activeTask}
+                className="btn-primary w-full py-4 flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> Submitting...</> : <>COMPLETE INTEGRATION <ArrowRight size={18} /></>}
+              </button>
+            )}
             <p className="text-center text-[10px] text-brand-muted mt-4 italic uppercase tracking-widest font-bold">
-              Successful submission triggers the Quality Gate streak
+              Successful submission is logged to your activity feed
             </p>
           </div>
         </div>
