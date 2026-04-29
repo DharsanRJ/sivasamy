@@ -117,3 +117,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   }
 }));
+
+// Expose store to window for E2E testing
+if (import.meta.env.DEV) {
+  (window as any).useAppStore = useAppStore;
+}
